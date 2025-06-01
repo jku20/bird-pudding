@@ -1,3 +1,5 @@
+use std::env;
+
 use avian2d::{math::Vector, prelude::*};
 use bevy::prelude::*;
 use bevy_ecs_tiled::prelude::*;
@@ -28,9 +30,10 @@ impl TiledPhysicsBackend for MyCustomAvianPhysicsBackend {
 }
 
 fn main() {
-    App::new()
-        // Add Bevy default plugins
-        .add_plugins(DefaultPlugins)
+    let mut app = App::new();
+
+    // Add Bevy default plugins
+    app.add_plugins(DefaultPlugins)
         // Add bevy_ecs_tiled plugin: note that bevy_ecs_tilemap::TilemapPlugin
         // will be automatically added as well if it's not already done
         .add_plugins(TiledMapPlugin::default())
@@ -44,8 +47,18 @@ fn main() {
         ))
         .insert_resource(Gravity(Vector::NEG_Y * 100.0))
         // Add our startup function to the schedule and run the app
-        .add_systems(Startup, startup)
-        .run();
+        .add_systems(Startup, startup);
+
+    if env::var("R").as_deref() == Ok("1") {
+        app.add_plugins({
+            let rec = revy::RecordingStreamBuilder::new("bevy-platformer")
+                .save(format!("log-{}.rrd", chrono::offset::Local::now()))
+                .unwrap();
+            revy::RerunPlugin { rec }
+        });
+    }
+
+    app.run();
 }
 
 fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {

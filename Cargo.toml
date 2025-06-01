@@ -10,6 +10,8 @@ bevy = { version = "0.16", features = ["file_watcher", "dynamic_linking"] }
 bevy_ecs_tiled = { version = "0.7", features = ["avian", "avian_debug"] }
 bevy_ecs_tilemap = "0.16"
 avian2d = { version = "0.3", features = ["diagnostic_ui"] }
+revy = { git = "https://github.com/ethanuppal/revy", rev = "de9e8e065db511514f6c7c8046922f7d8aa1b644" }
+chrono = "=0.4.39"
 
 [profile.dev]
 opt-level = 1
