@@ -3,6 +3,30 @@ use bevy::prelude::*;
 use bevy_ecs_tiled::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
+// https://github.com/adrien-bon/bevy_ecs_tiled/blob/ee458ad464e8ea7cea22c7923efb911945b5d710/examples/physics_avian_controller.rs#L96C1-L117C2
+#[derive(Default, Debug, Clone, Reflect)]
+#[reflect(Default, Debug)]
+struct MyCustomAvianPhysicsBackend(TiledPhysicsAvianBackend);
+
+impl TiledPhysicsBackend for MyCustomAvianPhysicsBackend {
+    fn spawn_colliders(
+        &self,
+        commands: &mut Commands,
+        tiled_map: &TiledMap,
+        filter: &TiledNameFilter,
+        collider: &TiledCollider,
+        anchor: &TilemapAnchor,
+    ) -> Vec<TiledColliderSpawnInfos> {
+        let colliders = self
+            .0
+            .spawn_colliders(commands, tiled_map, filter, collider, anchor);
+        for c in &colliders {
+            commands.entity(c.entity).insert(RigidBody::Static);
+        }
+        colliders
+    }
+}
+
 fn main() {
     App::new()
         // Add Bevy default plugins
@@ -10,7 +34,7 @@ fn main() {
         // Add bevy_ecs_tiled plugin: note that bevy_ecs_tilemap::TilemapPlugin
         // will be automatically added as well if it's not already done
         .add_plugins(TiledMapPlugin::default())
-        .add_plugins(TiledPhysicsPlugin::<TiledPhysicsAvianBackend>::default())
+        .add_plugins(TiledPhysicsPlugin::<MyCustomAvianPhysicsBackend>::default())
         // Load Avian main plugin
         .add_plugins(PhysicsPlugins::default().with_length_unit(100.0))
         .add_plugins((
