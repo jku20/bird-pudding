@@ -7,8 +7,9 @@ description = "Bevy Game Jam 2025"
 
 [dependencies]
 bevy = { version = "0.16", features = ["file_watcher", "dynamic_linking"] }
-bevy_ecs_tiled = "0.7"
+bevy_ecs_tiled = { version = "0.7", features = ["avian", "avian_debug"] }
 bevy_ecs_tilemap = "0.16"
+avian2d = { version = "0.3" }
 
 [profile.dev]
 opt-level = 1

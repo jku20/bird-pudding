@@ -1,5 +1,7 @@
+use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_ecs_tiled::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 
 fn main() {
     App::new()
@@ -8,6 +10,9 @@ fn main() {
         // Add bevy_ecs_tiled plugin: note that bevy_ecs_tilemap::TilemapPlugin
         // will be automatically added as well if it's not already done
         .add_plugins(TiledMapPlugin::default())
+        .add_plugins(TiledPhysicsPlugin::<TiledPhysicsAvianBackend>::default())
+        // Load Avian main plugin
+        .add_plugins(PhysicsPlugins::default().with_length_unit(100.0))
         // Add our startup function to the schedule and run the app
         .add_systems(Startup, startup)
         .run();
