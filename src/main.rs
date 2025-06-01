@@ -71,7 +71,7 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         // Transform::from_xyz(0.0, 100.0, 0.0),
         // GlobalTransform::default(),
         RigidBody::Dynamic,
-        // LockedAxes::ROTATION_LOCKED,
+        LockedAxes::ROTATION_LOCKED,
         // Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         Collider::rectangle(32.0, 32.0),
     ));
