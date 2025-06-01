@@ -21,5 +21,5 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let map_handle: Handle<TiledMap> = asset_server.load("test_level.tmx");
 
     // Spawn a new entity with this handle
-    commands.spawn(TiledMapHandle(map_handle));
+    commands.spawn((TiledMapHandle(map_handle), TilemapAnchor::Center));
 }
