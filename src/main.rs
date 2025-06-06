@@ -61,31 +61,178 @@ fn main() {
     app.run();
 }
 
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
+#[derive(Component)]
+struct ChainHead;
+
+struct ChainDescription {
+    tail_pos: Vec2,
+    direction: Vec2,
+    link_length: f32,
+    link_width: f32,
+    link_gap: f32,
+    link_count: usize,
+}
+
+struct Chain {
+    head_entity: Entity,
+    tail_entity: Entity,
+}
+
+fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain {
+    assert!(description.link_count > 0, "attempted to spawn empty chain");
+
+    let direction = description.direction.normalize();
+
+    let angle = description.direction.to_angle();
+    let rotation = Quat::from_rotation_z(angle);
+    let anchor_offset = (description.link_length + description.link_gap) / 2.0;
+    let anchor_offset_first = Vec2::from_angle(angle) * (description.link_length / 2.0);
+    let anchor_offset_a = Vec2::from_angle(angle) * anchor_offset;
+    let anchor_offset_b = -anchor_offset_a;
+
+    let tail_entity = commands
+        .spawn((
+            RigidBody::Static,
+            Transform::from_xyz(description.tail_pos.x, description.tail_pos.y, 0.0),
+        ))
+        .id();
+
+    let mut previous_entity = tail_entity;
+    let mut current_pos = description.tail_pos + anchor_offset_first;
+
+    for i in 0..description.link_count {
+        let current_entity = commands
+            .spawn((
+                Sprite {
+                    color: Color::srgb(0.0, 0.0, 1.0),
+                    custom_size: Some(Vec2::new(description.link_length, description.link_width)),
+                    ..default()
+                },
+                Transform::from_xyz(current_pos.x, current_pos.y, 0.0).with_rotation(rotation),
+                RigidBody::Dynamic,
+                // LockedAxes::ROTATION_LOCKED,
+                Collider::rectangle(description.link_length, description.link_width),
+            ))
+            .id();
+
+        commands.spawn(
+            RevoluteJoint::new(previous_entity, current_entity)
+                .with_local_anchor_1(if i == 0 {
+                    anchor_offset_first
+                } else {
+                    anchor_offset_a
+                })
+                .with_local_anchor_2(anchor_offset_b),
+        );
+
+        current_pos += direction * (description.link_length + description.link_gap);
+        previous_entity = current_entity;
+    }
+
+    let head_entity = previous_entity;
+
+    commands.entity(head_entity).insert(ChainHead);
+
+    Chain {
+        head_entity,
+        tail_entity,
+    }
+}
+
+fn startup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut time: ResMut<Time<Physics>>,
+) {
     // Spawn a Bevy 2D camera
     commands.spawn(Camera2d);
 
-    // Load a map asset and retrieve the corresponding handle
-    let map_handle: Handle<TiledMap> = asset_server.load("test_level.tmx");
+    // // Load a map asset and retrieve the corresponding handle
+    // let map_handle: Handle<TiledMap> = asset_server.load("test_level.tmx");
+    //
+    // // Spawn a new entity with this handle
+    // commands.spawn((
+    //     TiledMapHandle(map_handle),
+    //     TilemapAnchor::Center,
+    //     TiledPhysicsSettings::<TiledPhysicsAvianBackend>::default(),
+    // ));
 
-    // Spawn a new entity with this handle
-    commands.spawn((
-        TiledMapHandle(map_handle),
-        TilemapAnchor::Center,
-        TiledPhysicsSettings::<TiledPhysicsAvianBackend>::default(),
-    ));
+    // commands.spawn((
+    //     Sprite {
+    //         color: Color::srgb(0.0, 0.0, 1.0),
+    //         custom_size: Some(Vec2::new(32.0, 32.0)),
+    //         ..default()
+    //     },
+    //     // Transform::from_xyz(0.0, 100.0, 0.0),
+    //     // GlobalTransform::default(),
+    //     RigidBody::Dynamic,
+    //     // LockedAxes::ROTATION_LOCKED,
+    //     Collider::rectangle(32.0, 32.0),
+    // ));
 
-    commands.spawn((
-        Sprite {
-            color: Color::srgb(0.0, 0.0, 1.0),
-            custom_size: Some(Vec2::new(32.0, 32.0)),
-            ..default()
+    // let a = commands
+    //     .spawn((
+    //         Sprite {
+    //             color: Color::srgb(0.0, 0.0, 1.0),
+    //             custom_size: Some(Vec2::new(8.0, 32.0)),
+    //             ..default()
+    //         },
+    //         Transform::from_xyz(0.0, 100.0, 0.0),
+    //         RigidBody::Dynamic,
+    //         // LockedAxes::ROTATION_LOCKED,
+    //         Collider::rectangle(8.0, 32.0),
+    //     ))
+    //     .id();
+    // let b = commands
+    //     .spawn((
+    //         Sprite {
+    //             color: Color::srgb(0.0, 0.0, 1.0),
+    //             custom_size: Some(Vec2::new(8.0, 32.0)),
+    //             ..default()
+    //         },
+    //         Transform::from_xyz(0.0, 142.0, 0.0),
+    //         RigidBody::Dynamic,
+    //         // LockedAxes::ROTATION_LOCKED,
+    //         Collider::rectangle(8.0, 32.0),
+    //     ))
+    //     .id();
+    // commands.spawn(
+    //     RevoluteJoint::new(a, b)
+    //         .with_local_anchor_1(Vec2::new(0.0, 16.0 + 2.0))
+    //         .with_local_anchor_2(Vec2::new(0.0, -16.0 - 2.0)),
+    // );
+
+    // spawn_chain(
+    //     &mut commands,
+    //     ChainDescription {
+    //         tail_pos: Vec2::new(0.0, 200.0),
+    //         direction: Vec2::new(0.0, 1.0),
+    //         link_length: 32.0,
+    //         link_width: 8.0,
+    //         link_gap: 4.0,
+    //         link_count: 5,
+    //     },
+    // );
+    // spawn_chain(
+    //     &mut commands,
+    //     ChainDescription {
+    //         tail_pos: Vec2::new(100.0, 100.0),
+    //         direction: Vec2::new(1.0, 0.0),
+    //         link_length: 32.0,
+    //         link_width: 8.0,
+    //         link_gap: 4.0,
+    //         link_count: 5,
+    //     },
+    // );
+    spawn_chain(
+        &mut commands,
+        ChainDescription {
+            tail_pos: Vec2::new(-100.0, 200.0),
+            direction: Vec2::new(-1.0, 1.0),
+            link_length: 32.0,
+            link_width: 8.0,
+            link_gap: 4.0,
+            link_count: 5,
         },
-        // Transform::from_xyz(0.0, 100.0, 0.0),
-        // GlobalTransform::default(),
-        RigidBody::Dynamic,
-        LockedAxes::ROTATION_LOCKED,
-        // Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
-        Collider::rectangle(32.0, 32.0),
-    ));
+    );
 }
