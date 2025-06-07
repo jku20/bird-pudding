@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, time::Duration};
 
 use avian2d::{math::Vector, prelude::*};
 use bevy::prelude::*;
@@ -109,7 +109,8 @@ fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain 
                     custom_size: Some(Vec2::new(description.link_length, description.link_width)),
                     ..default()
                 },
-                Transform::from_xyz(current_pos.x, current_pos.y, 0.0), //.with_rotation(rotation),
+                Transform::from_xyz(current_pos.x, current_pos.y, 0.0),
+                Rotation::from_sin_cos(direction.y, direction.x),
                 RigidBody::Dynamic,
                 // LockedAxes::ROTATION_LOCKED,
                 Collider::rectangle(description.link_length, description.link_width),
@@ -125,6 +126,14 @@ fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain 
                 })
                 .with_local_anchor_2(anchor_offset_b),
         );
+        // if i > 0 {
+        //     commands.spawn(
+        //         DistanceJoint::new(previous_entity, current_entity)
+        //             .with_limits(0.0, description.link_gap)
+        //             .with_local_anchor_1(anchor_offset_a)
+        //             .with_local_anchor_2(anchor_offset_b),
+        //     );
+        // }
 
         current_pos += direction * (description.link_length + description.link_gap);
         previous_entity = current_entity;
@@ -247,5 +256,9 @@ fn update(mut time: ResMut<Time<Physics>>, keys: Res<ButtonInput<KeyCode>>) {
         } else {
             time.pause();
         }
+    }
+
+    if keys.just_pressed(KeyCode::Enter) && time.is_paused() {
+        time.advance_by(Duration::from_millis(10));
     }
 }
