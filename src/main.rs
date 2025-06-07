@@ -259,6 +259,10 @@ fn update(mut time: ResMut<Time<Physics>>, keys: Res<ButtonInput<KeyCode>>) {
     }
 
     if keys.just_pressed(KeyCode::Enter) && time.is_paused() {
-        time.advance_by(Duration::from_millis(10));
+        if keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight) {
+            time.advance_by(Duration::from_millis(10));
+        } else {
+            time.advance_by(Duration::from_millis(100));
+        }
     }
 }
