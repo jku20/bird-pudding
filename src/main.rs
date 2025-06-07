@@ -84,11 +84,11 @@ fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain 
 
     let direction = description.direction.normalize();
 
-    let angle = description.direction.to_angle();
-    let rotation = Quat::from_rotation_z(angle);
+    // we act as if everything points to the right and handle rotation where needed
+
     let anchor_offset = (description.link_length + description.link_gap) / 2.0;
-    let anchor_offset_first = Vec2::from_angle(angle) * (description.link_length / 2.0);
-    let anchor_offset_a = Vec2::from_angle(angle) * anchor_offset;
+    let anchor_offset_first = Vec2::new(1.0, 0.0) * (description.link_length / 2.0);
+    let anchor_offset_a = Vec2::new(1.0, 0.0) * anchor_offset;
     let anchor_offset_b = -anchor_offset_a;
 
     let tail_entity = commands
@@ -225,17 +225,17 @@ fn startup(
     //         link_count: 5,
     //     },
     // );
-    // spawn_chain(
-    //     &mut commands,
-    //     ChainDescription {
-    //         tail_pos: Vec2::new(100.0, 100.0),
-    //         direction: Vec2::new(1.0, 0.0),
-    //         link_length: 32.0,
-    //         link_width: 8.0,
-    //         link_gap: 4.0,
-    //         link_count: 5,
-    //     },
-    // );
+    spawn_chain(
+        &mut commands,
+        ChainDescription {
+            tail_pos: Vec2::new(100.0, 100.0),
+            direction: Vec2::new(1.0, 0.0),
+            link_length: 32.0,
+            link_width: 8.0,
+            link_gap: 4.0,
+            link_count: 5,
+        },
+    );
     spawn_chain(
         &mut commands,
         ChainDescription {
