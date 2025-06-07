@@ -47,7 +47,8 @@ fn main() {
         ))
         .insert_resource(Gravity(Vector::NEG_Y * 100.0))
         // Add our startup function to the schedule and run the app
-        .add_systems(Startup, startup);
+        .add_systems(Startup, startup)
+        .add_systems(Update, update);
 
     if env::var("R").as_deref() == Ok("1") {
         app.add_plugins({
@@ -108,7 +109,7 @@ fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain 
                     custom_size: Some(Vec2::new(description.link_length, description.link_width)),
                     ..default()
                 },
-                Transform::from_xyz(current_pos.x, current_pos.y, 0.0).with_rotation(rotation),
+                Transform::from_xyz(current_pos.x, current_pos.y, 0.0), //.with_rotation(rotation),
                 RigidBody::Dynamic,
                 // LockedAxes::ROTATION_LOCKED,
                 Collider::rectangle(description.link_length, description.link_width),
@@ -144,6 +145,8 @@ fn startup(
     asset_server: Res<AssetServer>,
     mut time: ResMut<Time<Physics>>,
 ) {
+    time.pause();
+
     // Spawn a Bevy 2D camera
     commands.spawn(Camera2d);
 
@@ -235,4 +238,14 @@ fn startup(
             link_count: 5,
         },
     );
+}
+
+fn update(mut time: ResMut<Time<Physics>>, keys: Res<ButtonInput<KeyCode>>) {
+    if keys.just_pressed(KeyCode::Space) {
+        if time.is_paused() {
+            time.unpause();
+        } else {
+            time.pause();
+        }
+    }
 }
