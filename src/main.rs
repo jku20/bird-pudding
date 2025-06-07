@@ -48,7 +48,7 @@ fn main() {
         .insert_resource(Gravity(Vector::NEG_Y * 100.0))
         // Add our startup function to the schedule and run the app
         .add_systems(Startup, startup)
-        .add_systems(Update, update);
+        .add_systems(Update, (keys_to_pause_time, heads_scared));
 
     if env::var("R").as_deref() == Ok("1") {
         app.add_plugins({
@@ -87,8 +87,8 @@ fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain 
     // we act as if everything points to the right and handle rotation where needed
 
     let anchor_offset = (description.link_length + description.link_gap) / 2.0;
-    let anchor_offset_first = Vec2::new(1.0, 0.0) * (description.link_length / 2.0);
-    let anchor_offset_a = Vec2::new(1.0, 0.0) * anchor_offset;
+    let anchor_offset_first = Vec2::X * (description.link_length / 2.0);
+    let anchor_offset_a = Vec2::X * anchor_offset;
     let anchor_offset_b = -anchor_offset_a;
 
     let tail_entity = commands
@@ -149,6 +149,39 @@ fn spawn_chain(commands: &mut Commands, description: ChainDescription) -> Chain 
     }
 }
 
+#[derive(Component)]
+struct Spike {
+    direction: Vec2,
+}
+
+struct SpikeDescription {
+    pos: Vec2,
+    width: f32,
+    height: f32,
+    direction: Vec2,
+}
+
+fn spawn_spike(commands: &mut Commands, description: SpikeDescription) -> Entity {
+    let direction = description.direction.normalize();
+
+    commands
+        .spawn((
+            Sprite {
+                color: Color::srgb(1.0, 0.0, 0.0),
+                custom_size: Some(Vec2::new(description.width, description.height)),
+                ..default()
+            },
+            Transform::from_xyz(description.pos.x, description.pos.y, 0.0),
+            Rotation::from_sin_cos(direction.y, direction.x),
+            RigidBody::Kinematic,
+            Collider::rectangle(description.width, description.height),
+            Spike {
+                direction: description.direction,
+            },
+        ))
+        .id()
+}
+
 fn startup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -159,15 +192,15 @@ fn startup(
     // Spawn a Bevy 2D camera
     commands.spawn(Camera2d);
 
-    // // Load a map asset and retrieve the corresponding handle
-    // let map_handle: Handle<TiledMap> = asset_server.load("test_level.tmx");
-    //
-    // // Spawn a new entity with this handle
-    // commands.spawn((
-    //     TiledMapHandle(map_handle),
-    //     TilemapAnchor::Center,
-    //     TiledPhysicsSettings::<TiledPhysicsAvianBackend>::default(),
-    // ));
+    // Load a map asset and retrieve the corresponding handle
+    let map_handle: Handle<TiledMap> = asset_server.load("test_level.tmx");
+
+    // Spawn a new entity with this handle
+    commands.spawn((
+        TiledMapHandle(map_handle),
+        TilemapAnchor::Center,
+        TiledPhysicsSettings::<TiledPhysicsAvianBackend>::default(),
+    ));
 
     // commands.spawn((
     //     Sprite {
@@ -228,8 +261,8 @@ fn startup(
     spawn_chain(
         &mut commands,
         ChainDescription {
-            tail_pos: Vec2::new(100.0, 100.0),
-            direction: Vec2::new(1.0, 0.0),
+            tail_pos: Vec2::new(240.0, 120.0),
+            direction: Vec2::new(0.5, -0.8),
             link_length: 32.0,
             link_width: 8.0,
             link_gap: 4.0,
@@ -239,17 +272,26 @@ fn startup(
     spawn_chain(
         &mut commands,
         ChainDescription {
-            tail_pos: Vec2::new(-100.0, 200.0),
-            direction: Vec2::new(-1.0, 1.0),
+            tail_pos: Vec2::new(-100.0, 220.0),
+            direction: Vec2::new(-1.0, -0.2),
             link_length: 32.0,
             link_width: 8.0,
             link_gap: 4.0,
             link_count: 5,
         },
     );
+    spawn_spike(
+        &mut commands,
+        SpikeDescription {
+            pos: Vec2::new(200.0, 0.0),
+            width: 20.0,
+            height: 20.0,
+            direction: Vec2::new(1.0, 0.0),
+        },
+    );
 }
 
-fn update(mut time: ResMut<Time<Physics>>, keys: Res<ButtonInput<KeyCode>>) {
+fn keys_to_pause_time(mut time: ResMut<Time<Physics>>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.just_pressed(KeyCode::Space) {
         if time.is_paused() {
             time.unpause();
@@ -263,6 +305,27 @@ fn update(mut time: ResMut<Time<Physics>>, keys: Res<ButtonInput<KeyCode>>) {
             time.advance_by(Duration::from_millis(10));
         } else {
             time.advance_by(Duration::from_millis(100));
+        }
+    }
+}
+
+fn heads_scared(
+    mut commands: Commands,
+    mut heads: ParamSet<(
+        Query<(&Transform, Entity), (With<ChainHead>, Without<Spike>)>,
+        Query<(&Transform, &mut ExternalForce), (With<ChainHead>, Without<Spike>)>,
+    )>,
+    spikes: Query<(&Spike, &Transform), (With<Spike>, Without<ChainHead>)>,
+) {
+    for (_, head_entity) in heads.p0().iter() {
+        commands
+            .entity(head_entity)
+            .insert(ExternalForce::new(Vec2::ZERO).with_persistence(true));
+    }
+    for (spike, spike_transform) in spikes {
+        for (head_transform, mut head_force) in heads.p1().iter_mut() {
+            head_force.apply_force(spike.direction * 100000.0);
+            println!("spike force {head_force:?}");
         }
     }
 }
